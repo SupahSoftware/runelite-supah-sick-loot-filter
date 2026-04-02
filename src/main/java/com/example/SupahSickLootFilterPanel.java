@@ -36,6 +36,7 @@ public class SupahSickLootFilterPanel extends PluginPanel
 	private final List<ItemFilterRule> rules = new ArrayList<>();
 	private final JPanel ruleListPanel;
 	private String searchQuery = "";
+	private ItemFilterRule newlyAdded = null;
 
 	public SupahSickLootFilterPanel(ConfigManager configManager, Gson gson)
 	{
@@ -113,7 +114,9 @@ public class SupahSickLootFilterPanel extends PluginPanel
 
 	private void addRule()
 	{
-		rules.add(new ItemFilterRule());
+		ItemFilterRule rule = new ItemFilterRule();
+		rules.add(rule);
+		newlyAdded = rule;
 		saveRules();
 		rebuildPanel();
 	}
@@ -132,6 +135,8 @@ public class SupahSickLootFilterPanel extends PluginPanel
 	{
 		ruleListPanel.removeAll();
 
+		// Build sorted index list
+		List<Integer> indices = new ArrayList<>();
 		for (int i = 0; i < rules.size(); i++)
 		{
 			ItemFilterRule rule = rules.get(i);
@@ -139,7 +144,27 @@ public class SupahSickLootFilterPanel extends PluginPanel
 			{
 				continue;
 			}
+			indices.add(i);
+		}
 
+		// Sort alphabetically, but pin newly added rule to the top
+		indices.sort((a, b) ->
+		{
+			ItemFilterRule ra = rules.get(a);
+			ItemFilterRule rb = rules.get(b);
+			if (ra == newlyAdded)
+			{
+				return -1;
+			}
+			if (rb == newlyAdded)
+			{
+				return 1;
+			}
+			return ra.getItemName().compareToIgnoreCase(rb.getItemName());
+		});
+
+		for (int i : indices)
+		{
 			ruleListPanel.add(Box.createRigidArea(new Dimension(0, 3)));
 			ruleListPanel.add(buildRuleRow(i));
 		}
@@ -178,7 +203,12 @@ public class SupahSickLootFilterPanel extends PluginPanel
 			public void focusLost(FocusEvent e)
 			{
 				rule.setItemName(nameField.getText());
+				if (rule == newlyAdded)
+				{
+					newlyAdded = null;
+				}
 				saveRules();
+				rebuildPanel();
 			}
 		});
 		rowPanel.add(nameField);
