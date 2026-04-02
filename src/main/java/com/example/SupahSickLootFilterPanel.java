@@ -37,6 +37,7 @@ public class SupahSickLootFilterPanel extends PluginPanel
 	private final JPanel ruleListPanel;
 	private String searchQuery = "";
 	private ItemFilterRule newlyAdded = null;
+	private JTextField focusAfterRebuild = null;
 
 	public SupahSickLootFilterPanel(ConfigManager configManager, Gson gson)
 	{
@@ -172,6 +173,12 @@ public class SupahSickLootFilterPanel extends PluginPanel
 		ruleListPanel.add(Box.createVerticalGlue());
 		revalidate();
 		repaint();
+
+		if (focusAfterRebuild != null)
+		{
+			focusAfterRebuild.requestFocusInWindow();
+			focusAfterRebuild = null;
+		}
 	}
 
 	private JPanel buildRuleRow(int index)
@@ -192,22 +199,42 @@ public class SupahSickLootFilterPanel extends PluginPanel
 		nameField.setText(rule.getItemName());
 		styleInput(nameField);
 		nameField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 24));
-		nameField.addActionListener(e ->
+		if (rule == newlyAdded)
 		{
-			rule.setItemName(nameField.getText());
-			saveRules();
+			focusAfterRebuild = nameField;
+		}
+		nameField.getDocument().addDocumentListener(new DocumentListener()
+		{
+			@Override
+			public void insertUpdate(DocumentEvent e)
+			{
+				rule.setItemName(nameField.getText());
+				saveRules();
+			}
+
+			@Override
+			public void removeUpdate(DocumentEvent e)
+			{
+				rule.setItemName(nameField.getText());
+				saveRules();
+			}
+
+			@Override
+			public void changedUpdate(DocumentEvent e)
+			{
+				rule.setItemName(nameField.getText());
+				saveRules();
+			}
 		});
 		nameField.addFocusListener(new FocusAdapter()
 		{
 			@Override
 			public void focusLost(FocusEvent e)
 			{
-				rule.setItemName(nameField.getText());
 				if (rule == newlyAdded)
 				{
 					newlyAdded = null;
 				}
-				saveRules();
 				rebuildPanel();
 			}
 		});
@@ -242,15 +269,26 @@ public class SupahSickLootFilterPanel extends PluginPanel
 		qtyField.setPreferredSize(new Dimension(32, 22));
 		qtyField.setMaximumSize(new Dimension(32, 22));
 		qtyField.setMinimumSize(new Dimension(32, 22));
-		qtyField.addFocusListener(new FocusAdapter()
+		qtyField.getDocument().addDocumentListener(new DocumentListener()
 		{
 			@Override
-			public void focusLost(FocusEvent e)
+			public void insertUpdate(DocumentEvent e)
+			{
+				parseQuantity(rule, qtyField);
+			}
+
+			@Override
+			public void removeUpdate(DocumentEvent e)
+			{
+				parseQuantity(rule, qtyField);
+			}
+
+			@Override
+			public void changedUpdate(DocumentEvent e)
 			{
 				parseQuantity(rule, qtyField);
 			}
 		});
-		qtyField.addActionListener(e -> parseQuantity(rule, qtyField));
 		rowPanel.add(qtyField);
 		rowPanel.add(Box.createRigidArea(new Dimension(2, 0)));
 
