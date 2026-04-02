@@ -34,6 +34,7 @@ public class SupahSickLootFilterPanel extends PluginPanel
 	private final Gson gson;
 	private final List<ItemFilterRule> rules = new ArrayList<>();
 	private final JPanel ruleListPanel;
+	private JScrollPane scrollPane;
 
 	public SupahSickLootFilterPanel(ConfigManager configManager, Gson gson)
 	{
@@ -63,12 +64,13 @@ public class SupahSickLootFilterPanel extends PluginPanel
 		ruleListPanel.setLayout(new BoxLayout(ruleListPanel, BoxLayout.Y_AXIS));
 		ruleListPanel.setBackground(ColorScheme.DARK_GRAY_COLOR);
 
-		JScrollPane scrollPane = new JScrollPane(ruleListPanel);
+		scrollPane = new JScrollPane(ruleListPanel);
 		scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
 		scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
 		scrollPane.setBackground(ColorScheme.DARK_GRAY_COLOR);
 		scrollPane.getViewport().setBackground(ColorScheme.DARK_GRAY_COLOR);
 		scrollPane.setBorder(BorderFactory.createEmptyBorder());
+		scrollPane.getVerticalScrollBar().setUnitIncrement(16);
 
 		add(scrollPane, BorderLayout.CENTER);
 
@@ -104,8 +106,8 @@ public class SupahSickLootFilterPanel extends PluginPanel
 		}
 
 		ruleListPanel.add(Box.createVerticalGlue());
-		ruleListPanel.revalidate();
-		ruleListPanel.repaint();
+		revalidate();
+		repaint();
 	}
 
 	private JPanel buildRuleRow(int index)
