@@ -18,9 +18,10 @@ import javax.swing.JButton;
 import javax.swing.JColorChooser;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.ui.PluginPanel;
@@ -34,7 +35,7 @@ public class SupahSickLootFilterPanel extends PluginPanel
 	private final Gson gson;
 	private final List<ItemFilterRule> rules = new ArrayList<>();
 	private final JPanel ruleListPanel;
-	private JScrollPane scrollPane;
+	private String searchQuery = "";
 
 	public SupahSickLootFilterPanel(ConfigManager configManager, Gson gson)
 	{
@@ -44,37 +45,69 @@ public class SupahSickLootFilterPanel extends PluginPanel
 		setLayout(new BorderLayout());
 		setBorder(new EmptyBorder(10, 5, 10, 5));
 
-		// Header with add button
-		JPanel headerPanel = new JPanel(new BorderLayout());
+		// Header with title, search, and add button
+		JPanel headerPanel = new JPanel();
+		headerPanel.setLayout(new BoxLayout(headerPanel, BoxLayout.Y_AXIS));
 		headerPanel.setBackground(ColorScheme.DARK_GRAY_COLOR);
+
+		JPanel titleRow = new JPanel(new BorderLayout());
+		titleRow.setBackground(ColorScheme.DARK_GRAY_COLOR);
 
 		JLabel titleLabel = new JLabel("Loot Filter Rules");
 		titleLabel.setForeground(Color.WHITE);
-		headerPanel.add(titleLabel, BorderLayout.WEST);
+		titleRow.add(titleLabel, BorderLayout.WEST);
 
 		JButton addButton = new JButton("+");
 		addButton.setToolTipText("Add new filter rule");
 		addButton.addActionListener(e -> addRule());
-		headerPanel.add(addButton, BorderLayout.EAST);
+		titleRow.add(addButton, BorderLayout.EAST);
+
+		headerPanel.add(titleRow);
+		headerPanel.add(Box.createRigidArea(new Dimension(0, 5)));
+
+		// Search bar
+		HintTextField searchField = new HintTextField("Search rules...");
+		styleInput(searchField);
+		searchField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 24));
+		searchField.getDocument().addDocumentListener(new DocumentListener()
+		{
+			@Override
+			public void insertUpdate(DocumentEvent e)
+			{
+				onSearchChanged(searchField.getText());
+			}
+
+			@Override
+			public void removeUpdate(DocumentEvent e)
+			{
+				onSearchChanged(searchField.getText());
+			}
+
+			@Override
+			public void changedUpdate(DocumentEvent e)
+			{
+				onSearchChanged(searchField.getText());
+			}
+		});
+		headerPanel.add(searchField);
+		headerPanel.add(Box.createRigidArea(new Dimension(0, 5)));
 
 		add(headerPanel, BorderLayout.NORTH);
 
-		// Scrollable rule list
+		// Rule list
 		ruleListPanel = new JPanel();
 		ruleListPanel.setLayout(new BoxLayout(ruleListPanel, BoxLayout.Y_AXIS));
 		ruleListPanel.setBackground(ColorScheme.DARK_GRAY_COLOR);
 
-		scrollPane = new JScrollPane(ruleListPanel);
-		scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-		scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-		scrollPane.setBackground(ColorScheme.DARK_GRAY_COLOR);
-		scrollPane.getViewport().setBackground(ColorScheme.DARK_GRAY_COLOR);
-		scrollPane.setBorder(BorderFactory.createEmptyBorder());
-		scrollPane.getVerticalScrollBar().setUnitIncrement(16);
-
-		add(scrollPane, BorderLayout.CENTER);
+		add(ruleListPanel, BorderLayout.CENTER);
 
 		loadRules();
+		rebuildPanel();
+	}
+
+	private void onSearchChanged(String query)
+	{
+		searchQuery = query.toLowerCase();
 		rebuildPanel();
 	}
 
@@ -101,6 +134,12 @@ public class SupahSickLootFilterPanel extends PluginPanel
 
 		for (int i = 0; i < rules.size(); i++)
 		{
+			ItemFilterRule rule = rules.get(i);
+			if (!searchQuery.isEmpty() && !rule.getItemName().toLowerCase().contains(searchQuery))
+			{
+				continue;
+			}
+
 			ruleListPanel.add(Box.createRigidArea(new Dimension(0, 3)));
 			ruleListPanel.add(buildRuleRow(i));
 		}
@@ -173,15 +212,14 @@ public class SupahSickLootFilterPanel extends PluginPanel
 		qtyField.setPreferredSize(new Dimension(32, 22));
 		qtyField.setMaximumSize(new Dimension(32, 22));
 		qtyField.setMinimumSize(new Dimension(32, 22));
-		FocusAdapter qtyListener = new FocusAdapter()
+		qtyField.addFocusListener(new FocusAdapter()
 		{
 			@Override
 			public void focusLost(FocusEvent e)
 			{
 				parseQuantity(rule, qtyField);
 			}
-		};
-		qtyField.addFocusListener(qtyListener);
+		});
 		qtyField.addActionListener(e -> parseQuantity(rule, qtyField));
 		rowPanel.add(qtyField);
 		rowPanel.add(Box.createRigidArea(new Dimension(2, 0)));
