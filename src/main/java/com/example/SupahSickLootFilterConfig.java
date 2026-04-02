@@ -4,9 +4,12 @@ import net.runelite.client.config.Config;
 import net.runelite.client.config.ConfigGroup;
 import net.runelite.client.config.ConfigItem;
 
-@ConfigGroup("supahsicklootfilter")
+@ConfigGroup(SupahSickLootFilterConfig.CONFIG_GROUP)
 public interface SupahSickLootFilterConfig extends Config
 {
+	String CONFIG_GROUP = "supahsicklootfilter";
+	String RULES_KEY = "filterRules";
+
 	@ConfigItem(
 		keyName = "enabled",
 		name = "Enable Filter",
