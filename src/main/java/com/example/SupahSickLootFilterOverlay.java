@@ -1,12 +1,8 @@
 package com.example;
 
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics2D;
-import java.lang.reflect.Type;
-import java.util.ArrayList;
 import java.util.List;
 import javax.inject.Inject;
 import net.runelite.api.Client;
@@ -16,7 +12,6 @@ import net.runelite.api.Scene;
 import net.runelite.api.Tile;
 import net.runelite.api.TileItem;
 import net.runelite.api.coords.LocalPoint;
-import net.runelite.client.config.ConfigManager;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.ui.overlay.Overlay;
 import net.runelite.client.ui.overlay.OverlayLayer;
@@ -24,27 +19,21 @@ import net.runelite.client.ui.overlay.OverlayPosition;
 
 public class SupahSickLootFilterOverlay extends Overlay
 {
-	private static final Type RULES_TYPE = new TypeToken<List<ItemFilterRule>>(){}.getType();
 	private static final int SCENE_SIZE = 104;
 
 	private final Client client;
 	private final SupahSickLootFilterConfig config;
-	private final ConfigManager configManager;
 	private final ItemManager itemManager;
-	private final Gson gson;
-
-	private List<ItemFilterRule> cachedRules = new ArrayList<>();
-	private String lastRulesJson = "";
+	private final FilterRuleService filterRuleService;
 
 	@Inject
 	public SupahSickLootFilterOverlay(Client client, SupahSickLootFilterConfig config,
-		ConfigManager configManager, ItemManager itemManager, Gson gson)
+		ItemManager itemManager, FilterRuleService filterRuleService)
 	{
 		this.client = client;
 		this.config = config;
-		this.configManager = configManager;
 		this.itemManager = itemManager;
-		this.gson = gson;
+		this.filterRuleService = filterRuleService;
 		setPosition(OverlayPosition.DYNAMIC);
 		setLayer(OverlayLayer.ABOVE_SCENE);
 	}
@@ -56,8 +45,6 @@ public class SupahSickLootFilterOverlay extends Overlay
 		{
 			return null;
 		}
-
-		List<ItemFilterRule> rules = loadRules();
 
 		Scene scene = client.getScene();
 		Tile[][][] tiles = scene.getTiles();
@@ -89,7 +76,7 @@ public class SupahSickLootFilterOverlay extends Overlay
 					}
 
 					int quantity = item.getQuantity();
-					ItemFilterRule matchedRule = findMatchingRule(rules, name, quantity);
+					ItemFilterRule matchedRule = filterRuleService.findMatchingRule(name, quantity);
 
 					if (matchedRule != null && matchedRule.getAction() == ItemFilterRule.Action.HIDE)
 					{
@@ -118,64 +105,6 @@ public class SupahSickLootFilterOverlay extends Overlay
 		}
 
 		return null;
-	}
-
-	private ItemFilterRule findMatchingRule(List<ItemFilterRule> rules, String itemName, int quantity)
-	{
-		for (ItemFilterRule rule : rules)
-		{
-			if (rule.getItemName().isEmpty())
-			{
-				continue;
-			}
-
-			if (!itemName.toLowerCase().contains(rule.getItemName().toLowerCase()))
-			{
-				continue;
-			}
-
-			boolean quantityMatch;
-			if (rule.getComparator() == ItemFilterRule.Comparator.GREATER_THAN)
-			{
-				quantityMatch = quantity >= rule.getQuantity();
-			}
-			else
-			{
-				quantityMatch = quantity <= rule.getQuantity();
-			}
-
-			if (quantityMatch)
-			{
-				return rule;
-			}
-		}
-		return null;
-	}
-
-	private List<ItemFilterRule> loadRules()
-	{
-		String json = configManager.getConfiguration(SupahSickLootFilterConfig.CONFIG_GROUP, SupahSickLootFilterConfig.RULES_KEY);
-		if (json == null)
-		{
-			json = "";
-		}
-
-		if (!json.equals(lastRulesJson))
-		{
-			lastRulesJson = json;
-			if (!json.isEmpty())
-			{
-				json = json.replace("\"HIGHLIGHT\"", "\"TINT\"");
-				List<ItemFilterRule> loaded = gson.fromJson(json, RULES_TYPE);
-				cachedRules = loaded != null ? loaded : new ArrayList<>();
-			}
-			else
-			{
-				cachedRules = new ArrayList<>();
-			}
-		}
-
-		return cachedRules;
 	}
 
 	private void renderText(Graphics2D graphics, Point point, String text, Color color)

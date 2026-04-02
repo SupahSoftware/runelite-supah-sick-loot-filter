@@ -1,0 +1,6 @@
+- Vertical spacing between items in a stack
+- add character combat level to filter with comparator as well. This will allow you to have one filter that can be used on multiple characters. Maybe you care about a mith drop on your alt but not your main
+- add support for wild card matching
+- add text color patterns instead of just flat colors
+- add option for text box border stroke
+- add option for text box background color
